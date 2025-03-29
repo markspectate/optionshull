@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Opciones - Black-Scholes</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+            padding-top: 50px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="text-center">Calculadora de Opciones (Black-Scholes)</h2>
+    <form id="optionForm">
+        <div class="form-group">
+            <label for="S">Precio actual de YPF (S):</label>
+            <input type="number" class="form-control" id="S" required>
+        </div>
+        <div class="form-group">
+            <label for="K">Precio de ejercicio (K):</label>
+            <input type="number" class="form-control" id="K" required>
+        </div>
+        <div class="form-group">
+            <label for="T">Tiempo hasta vencimiento (días):</label>
+            <input type="number" class="form-control" id="T" required>
+        </div>
+        <div class="form-group">
+            <label for="r">Tasa libre de riesgo (r en decimales):</label>
+            <input type="number" class="form-control" id="r" step="any" required>
+        </div>
+        <div class="form-group">
+            <label for="sigma">Volatilidad anual (sigma en decimales):</label>
+            <input type="number" class="form-control" id="sigma" step="any" required>
+        </div>
+        <div class="form-group">
+            <label for="optionType">Tipo de opción (C para Call, P para Put):</label>
+            <input type="text" class="form-control" id="optionType" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Calcular</button>
+    </form>
+
+    <div id="result" class="result"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.1/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+// Función para calcular la distribución normal acumulativa usando la función de error
+function erf(x) {
+    // Algoritmo de la función de error aproximada (utilizando serie de Taylor)
+    const sign = (x >= 0) ? 1 : -1;
+    x = Math.abs(x);
+    const a1 =  0.254829592;
+    const a2 = -0.284496736;
+    const a3 =  1.421413741;
+    const a4 = -1.453152027;
+    const a5 =  1.061405429;
+    const p  =  0.3275911;
+
+    const t = 1.0 / (1.0 + p * x);
+    const y = 1.0 - (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) * Math.exp(-x * x);
+
+    return sign * y; // Retornar el valor de erf(x)
+}
+
+// Función para calcular la distribución normal acumulativa
+function normalCDF(x) {
+    return 0.5 * (1 + erf(x / Math.sqrt(2)));
+}
+
+// Función para calcular el precio de la opción con el modelo Black-Scholes
+function blackScholes(optionType, S, K, T, r, sigma) {
+    if (T <= 0) {
+        return -1;
+    }
+    
+    let sqrtT = Math.sqrt(T);
+    let d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+    let d2 = d1 - sigma * sqrtT;
+    
+    if (optionType === 'C') {
+        return S * normalCDF(d1) - K * Math.exp(-r * T) * normalCDF(d2);
+    } else if (optionType === 'P') {
+        return K * Math.exp(-r * T) * normalCDF(-d2) - S * normalCDF(-d1);
+    } else {
+        return -1;
+    }
+}
+
+// Evento para manejar el formulario de cálculo
+document.getElementById('optionForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    let S = parseFloat(document.getElementById('S').value);
+    let K = parseFloat(document.getElementById('K').value);
+    let T = parseFloat(document.getElementById('T').value) / 365; // Convertir días a años
+    let r = parseFloat(document.getElementById('r').value);
+    let sigma = parseFloat(document.getElementById('sigma').value);
+    let optionType = document.getElementById('optionType').value.toUpperCase();
+
+    let price = blackScholes(optionType, S, K, T, r, sigma);
+
+    let resultElement = document.getElementById('result');
+    if (price !== -1) {
+        resultElement.innerHTML = `El precio de la opción es: <strong>${price.toFixed(2)}</strong>`;
+    } else {
+        resultElement.innerHTML = '<strong>Error en los datos ingresados.</strong>';
+    }
+});
+</script>
+
+</body>
+</html>
